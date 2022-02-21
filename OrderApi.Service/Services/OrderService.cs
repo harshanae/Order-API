@@ -1,4 +1,5 @@
 ﻿using OrderApi.Application;
+using OrderApi.Application.Repositories;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Dtos;
 using System;
@@ -13,10 +14,12 @@ namespace OrderApi.Service.Services
     {
         private OrderDbContext _context;
         private UnitOfWork _unitOfWork;
+        private OrderRepository _orderRepo;
         public OrderService(OrderDbContext context)
         {
             this._context = context;
             this._unitOfWork = new UnitOfWork(context);
+            _orderRepo = new OrderRepository(context);
         }
 
         public IEnumerable<Order> orderBulkAdd(IEnumerable<Order> orders)
@@ -102,5 +105,22 @@ namespace OrderApi.Service.Services
 
 
         }
+
+        public IEnumerable<CustomerTotal> GetCustomerSalesTotalGroupByRaw()
+        {
+            return _orderRepo.GetTotalSalesbyCustomerGroupByRep();
+        }
+
+        public IEnumerable<EmployeeTotal> GetEmployeeSalesGroupByRaw()
+        {
+            return _orderRepo.GetTotalSalesbyEmployeeGroupByRaw();
+        }
+
+        public IEnumerable<ProductOrderSummary> GetProductOrderSummary()
+        {
+            return _orderRepo.GetProductOrderSummaries();
+        }
+
+        
     }
 }

@@ -19,9 +19,17 @@ namespace OrderApi.Application
         public DbSet<ShippingMethod> ShippingMethods { get; set; }
         public DbSet<Order_Product> OrderDetails { get; set; }
 
+        public DbSet<CustomerTotal> CustomerTotal { get; set; }
+        public DbSet<EmployeeTotal> EmployeeTotal { get; set; }
+
+        public DbSet<ProductOrderSummary> ProductOrderSummaries { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Order_Product>().HasKey(sc => new { sc.OrderId, sc.ProductId });
+            modelBuilder.Entity<CustomerTotal>().HasNoKey();
+            modelBuilder.Entity<EmployeeTotal>().HasNoKey();
+            modelBuilder.Entity<ProductOrderSummary>().HasNoKey();
         }
     }
 }

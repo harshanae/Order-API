@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OrderApi.Application;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Dtos;
@@ -20,19 +21,22 @@ namespace OrderApi.Web.Controllers
         private readonly UnitOfWork _unitOfWork;
         private readonly EmployeeService employeeService;
         private readonly OrderService orderService;
+        private readonly ILogger _logger;
 
-        public EmployeesController(OrderDbContext context)
+        public EmployeesController(OrderDbContext context, ILoggerFactory logger)
         {
             _context = context;
             _unitOfWork = new UnitOfWork(context);
             employeeService = new EmployeeService(context);
             orderService = new OrderService(context);
+            _logger = logger.CreateLogger("EmployeeController");
         }
 
         // GET: api/Employees
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
         {
+            _logger.LogInformation("Get Employees was called");
             return Ok(_unitOfWork.EmployeeRepository.GetAll());
         }
 
@@ -40,6 +44,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Employee>> GetEmployee(int id)
         {
+            _logger.LogInformation("Get Employee by id was called");
             var employee = _unitOfWork.EmployeeRepository.GetById(id);
 
             if (employee == null)
@@ -55,6 +60,7 @@ namespace OrderApi.Web.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutEmployee(int id, Employee employee)
         {
+            _logger.LogInformation("Update Employee was called");
             if (id != employee.EmployeeId)
             {
                 return BadRequest();
@@ -86,6 +92,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
         {
+            _logger.LogInformation("Add Employee was called");
             _unitOfWork.EmployeeRepository.Insert(employee);
             _unitOfWork.Save();
 
@@ -96,6 +103,7 @@ namespace OrderApi.Web.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
+            _logger.LogInformation("Delete Employee was called");
             var employee = _unitOfWork.EmployeeRepository.GetById(id);
             if (employee == null)
             {
@@ -116,7 +124,8 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkEmployee(IEnumerable<Employee> employees)
         {
-            if(employees.Count() == 0)
+            _logger.LogInformation("Employee bulk add was called");
+            if (employees.Count() == 0)
             {
                 return BadRequest();
             }
@@ -126,6 +135,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("GetSalesByEmployeeId")]
         public async Task<ActionResult<IEnumerable<EmployeeSalesDto>>> GetOrderByCustomerNo()
         {
+            _logger.LogInformation("Get sales by Employee id was called");
             var id = Int32.Parse(HttpContext.Request.Query["employeeId"].ToString());
             EmployeeSalesDto eDto = new EmployeeSalesDto() ;
             if(!EmployeeExists(id))

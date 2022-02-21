@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OrderApi.Application;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Services;
@@ -18,18 +19,21 @@ namespace OrderApi.Web.Controllers
         private readonly OrderDbContext _context;
         private readonly UnitOfWork _unitOfWork;
         private readonly ShippingMethodService shippingMethodService;
+        private readonly ILogger _logger;
 
-        public ShippingMethodsController(OrderDbContext context)
+        public ShippingMethodsController(OrderDbContext context, ILoggerFactory logger)
         {
             _context = context;
             _unitOfWork = new UnitOfWork(context);
             shippingMethodService = new ShippingMethodService(context);
+            _logger = logger.CreateLogger("Shipping Methods Controller");
         }
 
         // GET: api/ShippingMethods
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ShippingMethod>>> GetShippingMethods()
         {
+            _logger.LogInformation("Get all shipping methods was called");
             return Ok(_unitOfWork.ShippingMethodsRepository.GetAll());
         }
 
@@ -37,6 +41,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ShippingMethod>> GetShippingMethod(int id)
         {
+            _logger.LogInformation("Get Shipping method by id was called");
             var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
 
             if (shippingMethod == null)
@@ -52,6 +57,7 @@ namespace OrderApi.Web.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutShippingMethod(int id, ShippingMethod shippingMethod)
         {
+            _logger.LogInformation("Update shipping method was called");
             if (id != shippingMethod.Id)
             {
                 return BadRequest();
@@ -83,6 +89,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<ShippingMethod>> PostShippingMethod(ShippingMethod shippingMethod)
         {
+            _logger.LogInformation("Add shipping method was called");
             _unitOfWork.ShippingMethodsRepository.Insert(shippingMethod);
             _unitOfWork.Save();
             return CreatedAtAction("GetShippingMethod", new { id = shippingMethod.Id }, shippingMethod);
@@ -92,6 +99,7 @@ namespace OrderApi.Web.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteShippingMethod(int id)
         {
+            _logger.LogInformation("Delete shipping method was called");
             var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
             if (shippingMethod == null)
             {
@@ -112,6 +120,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkShippingMethods(IEnumerable<ShippingMethod> smethods)
         {
+            _logger.LogInformation("Shipping method bulk add was called");
             if (smethods.Count() == 0)
             {
                 return BadRequest();

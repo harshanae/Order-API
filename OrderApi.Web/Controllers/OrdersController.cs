@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OrderApi.Application;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Dtos;
@@ -19,33 +20,54 @@ namespace OrderApi.Web.Controllers
         private readonly OrderDbContext _context;
         private readonly UnitOfWork _unitOfWork;
         private readonly OrderService orderService;
+        private readonly ILogger _logger;
 
-        public OrdersController(OrderDbContext context)
+        public OrdersController(OrderDbContext context, ILoggerFactory logger)
         {
             _context = context;
             _unitOfWork = new UnitOfWork(context);
             orderService = new OrderService(context);
+            _logger = logger.CreateLogger("OrdersController");
         }
 
         // GET: api/Orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
         {
-            return Ok(_unitOfWork.OrderRepository.GetAll());
+            _logger.LogInformation("Get all Orders was called");
+            try
+            {
+                return Ok(_unitOfWork.OrderRepository.GetAll());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            var order = _unitOfWork.OrderRepository.GetById(id);
-
-            if (order == null)
+            _logger.LogInformation("Get Order by id was called");
+            try
             {
-                return NotFound();
-            }
+                var order = _unitOfWork.OrderRepository.GetById(id);
 
-            return order;
+                if (order == null)
+                {
+                    return NotFound();
+                }
+
+                return order;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // PUT: api/Orders/5
@@ -53,6 +75,7 @@ namespace OrderApi.Web.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutOrder(int id, Order order)
         {
+            _logger.LogInformation("Update Order was called");
             if (id != order.Id)
             {
                 return BadRequest();
@@ -64,7 +87,7 @@ namespace OrderApi.Web.Controllers
             {
                 _unitOfWork.Save();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
                 if (!OrderExists(id))
                 {
@@ -72,7 +95,8 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
 
@@ -84,26 +108,46 @@ namespace OrderApi.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<Order>> PostOrder(Order order)
         {
-            _unitOfWork.OrderRepository.Insert(order);
-            _unitOfWork.Save();
+            _logger.LogInformation("Add Order was called");
+            try
+            {
+                _unitOfWork.OrderRepository.Insert(order);
+                _unitOfWork.Save();
 
-            return CreatedAtAction("GetOrder", new { id = order.Id }, order);
+                return CreatedAtAction("GetOrder", new { id = order.Id }, order);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+           
         }
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
+            _logger.LogInformation("Delete Order was called");
+            try
+            {
+                _unitOfWork.OrderRepository.Delete(id);
+                _unitOfWork.Save();
+
+                return NoContent();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
             var order = _unitOfWork.OrderRepository.GetById(id);
             if (order == null)
             {
                 return NotFound();
             }
 
-            _unitOfWork.OrderRepository.Delete(id);
-            _unitOfWork.Save();
-
-            return NoContent();
+            
         }
 
         private bool OrderExists(int id)
@@ -114,17 +158,28 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkOrders(IEnumerable<Order> orders)
         {
+            _logger.LogInformation("Order bulk add was called");
             if (orders.Count() == 0)
             {
                 return BadRequest();
             }
-            return Ok(orderService.orderBulkAdd(orders));
+            try
+            {
+                return Ok(orderService.orderBulkAdd(orders));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+           
         }
 
         [HttpPost("GetSalesByDateRange")]
         public async Task<ActionResult<IEnumerable<SalesByDateRangeDto>>> GetOrderByCustomerNo(SalesTotalDateRangeRequestDto requestDto)
         {
-            if(requestDto.startDate == null || requestDto.endDate == null)
+            _logger.LogInformation("Get order by date range was called");
+            if (requestDto.startDate == null || requestDto.endDate == null)
             {
                 return BadRequest();
             }
@@ -132,18 +187,67 @@ namespace OrderApi.Web.Controllers
             var endDate = requestDto.endDate;
 
             SalesByDateRangeDto resultDto = new SalesByDateRangeDto();
-            resultDto.TotalSales = orderService.GetTotalSalesInDateRange(startDate, endDate);
+            try
+            {
+                resultDto.TotalSales = orderService.GetTotalSalesInDateRange(startDate, endDate);
 
-            resultDto.StartDate = startDate;
-            resultDto.EndDate = endDate;
-            return Ok(resultDto);
+                resultDto.StartDate = startDate;
+                resultDto.EndDate = endDate;
+                return Ok(resultDto);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         [HttpGet("GetSalesByCustomerGroupBy")]
-        public async Task<ActionResult<IEnumerable<CustomerSalesDto>>> GetSalesByCustomerGroupBy()
+        public async Task<ActionResult<IEnumerable<CustomerTotal>>> GetSalesByCustomerGroupBy()
         {
+            _logger.LogInformation("Get order by customer group by was called");
+            try
+            {
+                //return Ok(orderService.GetTotalSalesByCustomersGroupBy());
+                return Ok(orderService.GetCustomerSalesTotalGroupByRaw());
+            }
+            catch(Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
+        }
 
-            return Ok(orderService.GetTotalSalesByCustomersGroupBy());
+        [HttpGet("GetSalesByEmployeesGroupBy")]
+        public async Task<ActionResult<IEnumerable<EmployeeTotal>>> GetSalesByEmployeeGroupBy()
+        {
+            _logger.LogInformation("Get order by employee group by was called");
+            try
+            {
+                return Ok(orderService.GetEmployeeSalesGroupByRaw());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet("GetProductOrderSummaries")]
+        public async Task<ActionResult<IEnumerable<ProductOrderSummary>>> GetProductOrderSummary()
+        {
+            _logger.LogInformation("Get Product Order summary was called");
+            try
+            {
+                return Ok(orderService.GetProductOrderSummary());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
     }
 }

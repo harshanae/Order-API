@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OrderApi.Application;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Dtos;
 using OrderApi.Service.Services;
+
 
 namespace OrderApi.Web.Controllers
 {
@@ -20,19 +22,22 @@ namespace OrderApi.Web.Controllers
         private readonly OrderDbContext _context;
         private readonly CustomerService customerService;
         private readonly OrderService orderService;
+        private readonly ILogger _logger;
 
-        public CustomersController(OrderDbContext context)
+        public CustomersController(OrderDbContext context, ILoggerFactory logger)
         {
             _context = context;
             unitOfWork = new UnitOfWork(context);
             customerService = new CustomerService(context);
             orderService = new OrderService(context);
+            _logger = logger.CreateLogger("CustomerController");
         }
 
         // GET: api/Customers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
+            _logger.LogInformation("Get all customers was called");
             var customers = unitOfWork.CustomerRepository.GetAll();
             return Ok(customers);
         }
@@ -42,7 +47,7 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Customer>> GetCustomer(int id)
         {
             var customer = unitOfWork.CustomerRepository.GetById(id);
-
+            _logger.LogInformation("Customers get by id is called");
             if (customer == null)
             {
                 return NotFound();
@@ -56,6 +61,7 @@ namespace OrderApi.Web.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCustomer(int id, Customer customer)
         {
+            _logger.LogInformation("Update customer was called");
             if (id != customer.Id)
             {
                 return BadRequest();
@@ -87,6 +93,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
         {
+            _logger.LogInformation("Add customer was called");
             unitOfWork.CustomerRepository.Insert(customer);
             unitOfWork.Save();
 
@@ -97,6 +104,7 @@ namespace OrderApi.Web.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
+            _logger.LogInformation("Delete customer was called");
             var customer = unitOfWork.CustomerRepository.GetById(id);
             if (customer == null)
             {
@@ -117,6 +125,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkCustomers(IEnumerable<Customer> customers)
         {
+            _logger.LogInformation("Customer bulk add was called");
             if (customers.Count() == 0)
             {
                 return BadRequest();
@@ -127,6 +136,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("GetSalesByCustomerId")]
         public async Task<ActionResult<IEnumerable<CustomerSalesDto>>> GetOrderByCustomerNo()
         {
+            _logger.LogInformation("Get Sales by customer id was called");
             var id = Int32.Parse(HttpContext.Request.Query["customerId"].ToString());
             CustomerSalesDto cDto = new CustomerSalesDto();
             if (!CustomerExists(id))

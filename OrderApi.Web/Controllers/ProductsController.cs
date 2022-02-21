@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OrderApi.Application;
 using OrderApi.Domain.Models;
 using OrderApi.Service.Dtos;
@@ -20,19 +21,22 @@ namespace OrderApi.Web.Controllers
         private readonly UnitOfWork _unitOfWork;
         private readonly ProductService productService;
         private readonly OrderDetailsService orderDetailsService;
+        private readonly ILogger _logger;
 
-        public ProductsController(OrderDbContext context)
+        public ProductsController(OrderDbContext context, ILoggerFactory logger)
         {
             _context = context;
             _unitOfWork = new UnitOfWork(context);
             productService = new ProductService(context);
             orderDetailsService = new OrderDetailsService(context);
+            _logger = logger.CreateLogger("ProductsController");
         }
 
         // GET: api/Products
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
+            _logger.LogInformation("Get All products was called");
             return Ok(_unitOfWork.ProductRepository.GetAll());
         }
 
@@ -40,6 +44,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
+            _logger.LogInformation("Get product by id was called");
             var product = _unitOfWork.ProductRepository.GetById(id);
 
             if (product == null)
@@ -55,6 +60,7 @@ namespace OrderApi.Web.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProduct(int id, Product product)
         {
+            _logger.LogInformation("Update product was called");
             if (id != product.Id)
             {
                 return BadRequest();
@@ -86,6 +92,7 @@ namespace OrderApi.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(Product product)
         {
+            _logger.LogInformation("Add product was called");
             _unitOfWork.ProductRepository.Insert(product);
             _unitOfWork.Save();
 
@@ -96,6 +103,7 @@ namespace OrderApi.Web.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            _logger.LogInformation("Delete product was called");
             var product = _unitOfWork.ProductRepository.GetById(id);
             if (product == null)
             {
@@ -116,7 +124,8 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkProducts(IEnumerable<Product> products)
         {
-            if(products.Count() == 0)
+            _logger.LogInformation("Product nulk add was called");
+            if (products.Count() == 0)
             {
                 return BadRequest();
             }
@@ -126,6 +135,7 @@ namespace OrderApi.Web.Controllers
         [HttpGet("GetSalesByProductId")]
         public async Task<ActionResult<IEnumerable<SalesByProductDto>>> GetSalesByProductNo()
         {
+            _logger.LogInformation("Get sales by product was called");
             var id = Int32.Parse(HttpContext.Request.Query["productId"].ToString());
             if (!ProductExists(id))
             {

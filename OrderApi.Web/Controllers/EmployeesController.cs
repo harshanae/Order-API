@@ -37,7 +37,16 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
         {
             _logger.LogInformation("Get Employees was called");
-            return Ok(_unitOfWork.EmployeeRepository.GetAll());
+            try
+            {
+                return Ok(_unitOfWork.EmployeeRepository.GetAll());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+           
         }
 
         // GET: api/Employees/5
@@ -45,14 +54,23 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Employee>> GetEmployee(int id)
         {
             _logger.LogInformation("Get Employee by id was called");
-            var employee = _unitOfWork.EmployeeRepository.GetById(id);
-
-            if (employee == null)
+            try
             {
-                return NotFound();
-            }
+                var employee = _unitOfWork.EmployeeRepository.GetById(id);
 
-            return employee;
+                if (employee == null)
+                {
+                    return NotFound();
+                }
+
+                return employee;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // PUT: api/Employees/5
@@ -61,18 +79,28 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> PutEmployee(int id, Employee employee)
         {
             _logger.LogInformation("Update Employee was called");
-            if (id != employee.EmployeeId)
+            try
             {
-                return BadRequest();
+                if (id != employee.EmployeeId)
+                {
+                    return BadRequest();
+                }
+
+                _unitOfWork.EmployeeRepository.Update(employee);
             }
-
-            _unitOfWork.EmployeeRepository.Update(employee);
-
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
             try
             {
                 _unitOfWork.Save();
+
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
                 if (!EmployeeExists(id))
                 {
@@ -80,11 +108,10 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/Employees
@@ -93,10 +120,19 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
         {
             _logger.LogInformation("Add Employee was called");
-            _unitOfWork.EmployeeRepository.Insert(employee);
-            _unitOfWork.Save();
+            try
+            {
+                _unitOfWork.EmployeeRepository.Insert(employee);
+                _unitOfWork.Save();
 
-            return CreatedAtAction("GetEmployee", new { id = employee.EmployeeId }, employee);
+                return CreatedAtAction("GetEmployee", new { id = employee.EmployeeId }, employee);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // DELETE: api/Employees/5
@@ -104,16 +140,25 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             _logger.LogInformation("Delete Employee was called");
-            var employee = _unitOfWork.EmployeeRepository.GetById(id);
-            if (employee == null)
+            try
             {
-                return NotFound();
+                var employee = _unitOfWork.EmployeeRepository.GetById(id);
+                if (employee == null)
+                {
+                    return NotFound();
+                }
+
+                _unitOfWork.EmployeeRepository.Delete(id);
+                _unitOfWork.Save();
+
+                return NoContent();
             }
-
-            _unitOfWork.EmployeeRepository.Delete(id);
-            _unitOfWork.Save();
-
-            return NoContent();
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         private bool EmployeeExists(int id)
@@ -125,26 +170,43 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkEmployee(IEnumerable<Employee> employees)
         {
             _logger.LogInformation("Employee bulk add was called");
-            if (employees.Count() == 0)
+            try
             {
-                return BadRequest();
+                if (employees.Count() == 0)
+                {
+                    return BadRequest();
+                }
+                return Ok(employeeService.employeeBulkAdd(employees));
             }
-            return Ok(employeeService.employeeBulkAdd(employees));
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         [HttpGet("GetSalesByEmployeeId")]
         public async Task<ActionResult<IEnumerable<EmployeeSalesDto>>> GetOrderByCustomerNo()
         {
             _logger.LogInformation("Get sales by Employee id was called");
-            var id = Int32.Parse(HttpContext.Request.Query["employeeId"].ToString());
-            EmployeeSalesDto eDto = new EmployeeSalesDto() ;
-            if(!EmployeeExists(id))
+            try
             {
-                return BadRequest();
+                var id = Int32.Parse(HttpContext.Request.Query["employeeId"].ToString());
+                EmployeeSalesDto eDto = new EmployeeSalesDto();
+                if (!EmployeeExists(id))
+                {
+                    return BadRequest();
+                }
+                eDto.Employee = _unitOfWork.EmployeeRepository.GetById(id);
+                eDto.TotalSaleAmount = orderService.GetTotalSalesByEmplyeeId(id);
+                return Ok(eDto);
             }
-            eDto.Employee = _unitOfWork.EmployeeRepository.GetById(id);
-            eDto.TotalSaleAmount = orderService.GetTotalSalesByEmplyeeId(id);
-            return Ok(eDto);
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
     }
 }

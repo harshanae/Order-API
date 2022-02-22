@@ -38,22 +38,40 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
             _logger.LogInformation("Get all customers was called");
-            var customers = unitOfWork.CustomerRepository.GetAll();
-            return Ok(customers);
+            try
+            {
+                var customers = unitOfWork.CustomerRepository.GetAll();
+                return Ok(customers);
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // GET: api/Customers/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(int id)
         {
-            var customer = unitOfWork.CustomerRepository.GetById(id);
             _logger.LogInformation("Customers get by id is called");
-            if (customer == null)
+            try
             {
-                return NotFound();
-            }
+                var customer = unitOfWork.CustomerRepository.GetById(id);
+                if (customer == null)
+                {
+                    return NotFound();
+                }
 
-            return customer;
+                return customer;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // PUT: api/Customers/5
@@ -66,14 +84,14 @@ namespace OrderApi.Web.Controllers
             {
                 return BadRequest();
             }
-
-            unitOfWork.CustomerRepository.Update(customer);
-
             try
             {
+                unitOfWork.CustomerRepository.Update(customer);
                 unitOfWork.Save();
+
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception e)
             {
                 if (!CustomerExists(id))
                 {
@@ -81,11 +99,10 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/Customers
@@ -94,10 +111,19 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
         {
             _logger.LogInformation("Add customer was called");
-            unitOfWork.CustomerRepository.Insert(customer);
-            unitOfWork.Save();
+            try
+            {
+                unitOfWork.CustomerRepository.Insert(customer);
+                unitOfWork.Save();
 
-            return CreatedAtAction("GetCustomer", new { id = customer.Id }, customer);
+                return CreatedAtAction("GetCustomer", new { id = customer.Id }, customer);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // DELETE: api/Customers/5
@@ -105,16 +131,25 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> DeleteCustomer(int id)
         {
             _logger.LogInformation("Delete customer was called");
-            var customer = unitOfWork.CustomerRepository.GetById(id);
-            if (customer == null)
+            try
             {
-                return NotFound();
+                var customer = unitOfWork.CustomerRepository.GetById(id);
+                if (customer == null)
+                {
+                    return NotFound();
+                }
+
+                unitOfWork.CustomerRepository.Delete(id);
+                unitOfWork.Save();
+
+                return NoContent();
             }
-
-            unitOfWork.CustomerRepository.Delete(id);
-            unitOfWork.Save();
-
-            return NoContent();
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         private bool CustomerExists(int id)
@@ -125,27 +160,44 @@ namespace OrderApi.Web.Controllers
         [HttpPost("bulkAdd")]
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkCustomers(IEnumerable<Customer> customers)
         {
-            _logger.LogInformation("Customer bulk add was called");
-            if (customers.Count() == 0)
+            _logger.LogInformation("Customer bulk add was called"); try
             {
-                return BadRequest();
+                if (customers.Count() == 0)
+                {
+                    return BadRequest();
+                }
+                return Ok(customerService.customerBulkAdd(customers));
             }
-            return Ok(customerService.customerBulkAdd(customers));
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         [HttpGet("GetSalesByCustomerId")]
         public async Task<ActionResult<IEnumerable<CustomerSalesDto>>> GetOrderByCustomerNo()
         {
             _logger.LogInformation("Get Sales by customer id was called");
-            var id = Int32.Parse(HttpContext.Request.Query["customerId"].ToString());
-            CustomerSalesDto cDto = new CustomerSalesDto();
-            if (!CustomerExists(id))
+            try
             {
-                return BadRequest();
+                var id = Int32.Parse(HttpContext.Request.Query["customerId"].ToString());
+                CustomerSalesDto cDto = new CustomerSalesDto();
+                if (!CustomerExists(id))
+                {
+                    return BadRequest();
+                }
+                cDto.Customer = unitOfWork.CustomerRepository.GetById(id);
+                cDto.TotalSaleAmount = orderService.GetTotalSalesByEmplyeeId(id);
+                return Ok(cDto);
             }
-            cDto.Customer = unitOfWork.CustomerRepository.GetById(id);
-            cDto.TotalSaleAmount = orderService.GetTotalSalesByEmplyeeId(id);
-            return Ok(cDto);
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
 

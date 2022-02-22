@@ -37,7 +37,16 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             _logger.LogInformation("Get All products was called");
-            return Ok(_unitOfWork.ProductRepository.GetAll());
+            try
+            {
+                return Ok(_unitOfWork.ProductRepository.GetAll());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // GET: api/Products/5
@@ -45,14 +54,22 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
             _logger.LogInformation("Get product by id was called");
-            var product = _unitOfWork.ProductRepository.GetById(id);
-
-            if (product == null)
+            try
             {
-                return NotFound();
-            }
+                var product = _unitOfWork.ProductRepository.GetById(id);
 
-            return product;
+                if (product == null)
+                {
+                    return NotFound();
+                }
+
+                return product;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // PUT: api/Products/5
@@ -61,18 +78,28 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> PutProduct(int id, Product product)
         {
             _logger.LogInformation("Update product was called");
-            if (id != product.Id)
+            try
             {
-                return BadRequest();
-            }
+                if (id != product.Id)
+                {
+                    return BadRequest();
+                }
 
-            _unitOfWork.ProductRepository.Update(product);
+                _unitOfWork.ProductRepository.Update(product);
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
 
             try
             {
                 _unitOfWork.Save();
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
                 if (!ProductExists(id))
                 {
@@ -80,11 +107,10 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/Products
@@ -93,10 +119,19 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Product>> PostProduct(Product product)
         {
             _logger.LogInformation("Add product was called");
-            _unitOfWork.ProductRepository.Insert(product);
-            _unitOfWork.Save();
+            try
+            {
+                _unitOfWork.ProductRepository.Insert(product);
+                _unitOfWork.Save();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+                return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // DELETE: api/Products/5
@@ -104,16 +139,24 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> DeleteProduct(int id)
         {
             _logger.LogInformation("Delete product was called");
-            var product = _unitOfWork.ProductRepository.GetById(id);
-            if (product == null)
+            try
             {
-                return NotFound();
+                var product = _unitOfWork.ProductRepository.GetById(id);
+                if (product == null)
+                {
+                    return NotFound();
+                }
+                _unitOfWork.ProductRepository.Delete(id);
+                _unitOfWork.Save();
+
+                return NoContent();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
             }
 
-            _unitOfWork.ProductRepository.Delete(id);
-            _unitOfWork.Save();
-
-            return NoContent();
         }
 
         private bool ProductExists(int id)
@@ -125,34 +168,52 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkProducts(IEnumerable<Product> products)
         {
             _logger.LogInformation("Product nulk add was called");
-            if (products.Count() == 0)
+            try
             {
-                return BadRequest();
+                if (products.Count() == 0)
+                {
+                    return BadRequest();
+                }
+                return Ok(productService.productBulkAdd(products));
             }
-            return Ok(productService.productBulkAdd(products));
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         [HttpGet("GetSalesByProductId")]
         public async Task<ActionResult<IEnumerable<SalesByProductDto>>> GetSalesByProductNo()
         {
             _logger.LogInformation("Get sales by product was called");
-            var id = Int32.Parse(HttpContext.Request.Query["productId"].ToString());
-            if (!ProductExists(id))
+            try
             {
-                return BadRequest();
+                var id = Int32.Parse(HttpContext.Request.Query["productId"].ToString());
+                if (!ProductExists(id))
+                {
+                    return BadRequest();
+                }
+
+                var resultDto = orderDetailsService.GetTotalSalesByProduct(id);
+
+                decimal totalSales = 0;
+                Product product = _unitOfWork.ProductRepository.GetById(id);
+                totalSales = resultDto.Quantity * (product.Price - product.Price * (product.Discount / 100));
+
+                // resultDto.Product = product;
+                resultDto.TotalSales = totalSales;
+
+
+                return Ok(resultDto);
             }
-
-            var resultDto = orderDetailsService.GetTotalSalesByProduct(id);
-
-            decimal totalSales = 0;
-            Product product = _unitOfWork.ProductRepository.GetById(id);
-            totalSales = resultDto.Quantity * (product.Price - product.Price * (product.Discount / 100));
-
-           // resultDto.Product = product;
-            resultDto.TotalSales = totalSales;
-
-
-            return Ok(resultDto);
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
     }
 }

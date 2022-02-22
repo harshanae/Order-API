@@ -35,7 +35,16 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Order_Product>>> GetOrderDetails()
         {
             _logger.LogInformation("Get all Sales Details was called");
-            return Ok(_unitOfWork.OrderDetailsRepository.GetAll());
+            try
+            {
+                return Ok(_unitOfWork.OrderDetailsRepository.GetAll());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // GET: api/Order_Product/5
@@ -43,14 +52,23 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Order_Product>> GetOrder_Product(int id)
         {
             _logger.LogInformation("Get all Sales Details by id was called");
-            var order_Product = _unitOfWork.OrderDetailsRepository.GetById(id);
-
-            if (order_Product == null)
+            try
             {
-                return NotFound();
-            }
+                var order_Product = _unitOfWork.OrderDetailsRepository.GetById(id);
 
-            return order_Product;
+                if (order_Product == null)
+                {
+                    return NotFound();
+                }
+
+                return order_Product;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         // PUT: api/Order_Product/5
@@ -59,18 +77,28 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> PutOrder_Product(int id, Order_Product order_Product)
         {
             _logger.LogInformation("Update Sales Details was called");
-            if (id != order_Product.OrderId)
+            try
             {
-                return BadRequest();
-            }
+                if (id != order_Product.OrderId)
+                {
+                    return BadRequest();
+                }
 
-            _unitOfWork.OrderDetailsRepository.Update(order_Product);
+                _unitOfWork.OrderDetailsRepository.Update(order_Product);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
 
             try
             {
                 _unitOfWork.Save();
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
                 if (!Order_ProductExists(order_Product.OrderId, order_Product.ProductId))
                 {
@@ -78,11 +106,10 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/Order_Product
@@ -91,24 +118,35 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<Order_Product>> PostOrder_Product(Order_Product order_Product)
         {
             _logger.LogInformation("Add Sales Details was called");
-            _unitOfWork.OrderDetailsRepository.Insert(order_Product);
             try
             {
+                _unitOfWork.OrderDetailsRepository.Insert(order_Product);
                 _unitOfWork.Save();
-            }
-            catch (DbUpdateException)
-            {
-                if (Order_ProductExists(order_Product.OrderId, order_Product.ProductId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return CreatedAtAction("GetOrder_Product", new { id = order_Product.OrderId }, order_Product);
+                return CreatedAtAction("GetOrder_Product", new { id = order_Product.OrderId }, order_Product);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
+            //try
+            //{
+                
+            //}
+            //catch (DbUpdateException)
+            //{
+            //    if (Order_ProductExists(order_Product.OrderId, order_Product.ProductId))
+            //    {
+            //        return Conflict();
+            //    }
+            //    else
+            //    {
+            //        throw;
+            //    }
+            //}
+
         }
 
         // DELETE: api/Order_Product/5
@@ -116,16 +154,25 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> DeleteOrder_Product(int id)
         {
             _logger.LogInformation("Delete Sales Details was called");
-            var order_Product = _unitOfWork.OrderDetailsRepository.GetById(id);
-            if (order_Product == null)
+            try
             {
-                return NotFound();
+                var order_Product = _unitOfWork.OrderDetailsRepository.GetById(id);
+                if (order_Product == null)
+                {
+                    return NotFound();
+                }
+
+                _unitOfWork.OrderDetailsRepository.Delete(id);
+                _unitOfWork.Save();
+
+                return NoContent();
             }
-
-            _unitOfWork.OrderDetailsRepository.Delete(id);
-            _unitOfWork.Save();
-
-            return NoContent();
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
 
         private bool Order_ProductExists(int orderId, int productId)
@@ -137,11 +184,20 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Order_Product>>> PostBulkOrderDetails(IEnumerable<Order_Product> order_Products)
         {
             _logger.LogInformation("Sales Details bulk add was called");
-            if (order_Products.Count() == 0)
+            try
             {
-                return BadRequest();
+                if (order_Products.Count() == 0)
+                {
+                    return BadRequest();
+                }
+                return Ok(orderDetailsService.orderProductBulkAdd(order_Products));
             }
-            return Ok(orderDetailsService.orderProductBulkAdd(order_Products));
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
     }
 }

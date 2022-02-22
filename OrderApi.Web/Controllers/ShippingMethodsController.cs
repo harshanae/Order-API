@@ -34,7 +34,15 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<ShippingMethod>>> GetShippingMethods()
         {
             _logger.LogInformation("Get all shipping methods was called");
-            return Ok(_unitOfWork.ShippingMethodsRepository.GetAll());
+            try
+            {
+                return Ok(_unitOfWork.ShippingMethodsRepository.GetAll());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // GET: api/ShippingMethods/5
@@ -42,14 +50,23 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<ShippingMethod>> GetShippingMethod(int id)
         {
             _logger.LogInformation("Get Shipping method by id was called");
-            var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
-
-            if (shippingMethod == null)
+            try
             {
-                return NotFound();
-            }
+                var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
 
-            return shippingMethod;
+                if (shippingMethod == null)
+                {
+                    return NotFound();
+                }
+
+                return shippingMethod;
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // PUT: api/ShippingMethods/5
@@ -58,18 +75,28 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> PutShippingMethod(int id, ShippingMethod shippingMethod)
         {
             _logger.LogInformation("Update shipping method was called");
-            if (id != shippingMethod.Id)
+            try
             {
-                return BadRequest();
-            }
+                if (id != shippingMethod.Id)
+                {
+                    return BadRequest();
+                }
 
-            _unitOfWork.ShippingMethodsRepository.Update(shippingMethod);
+                _unitOfWork.ShippingMethodsRepository.Update(shippingMethod);
+
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
 
             try
             {
                 _unitOfWork.Save();
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
                 if (!ShippingMethodExists(id))
                 {
@@ -77,11 +104,10 @@ namespace OrderApi.Web.Controllers
                 }
                 else
                 {
-                    throw;
+                    _logger.LogError(e, "Something went wrong");
+                    return StatusCode(500);
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/ShippingMethods
@@ -90,9 +116,17 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<ShippingMethod>> PostShippingMethod(ShippingMethod shippingMethod)
         {
             _logger.LogInformation("Add shipping method was called");
-            _unitOfWork.ShippingMethodsRepository.Insert(shippingMethod);
-            _unitOfWork.Save();
-            return CreatedAtAction("GetShippingMethod", new { id = shippingMethod.Id }, shippingMethod);
+            try
+            {
+                _unitOfWork.ShippingMethodsRepository.Insert(shippingMethod);
+                _unitOfWork.Save();
+                return CreatedAtAction("GetShippingMethod", new { id = shippingMethod.Id }, shippingMethod);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         // DELETE: api/ShippingMethods/5
@@ -100,16 +134,23 @@ namespace OrderApi.Web.Controllers
         public async Task<IActionResult> DeleteShippingMethod(int id)
         {
             _logger.LogInformation("Delete shipping method was called");
-            var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
-            if (shippingMethod == null)
+            try
             {
-                return NotFound();
+                var shippingMethod = _unitOfWork.ShippingMethodsRepository.GetById(id);
+                if (shippingMethod == null)
+                {
+                    return NotFound();
+                }
+                _unitOfWork.ShippingMethodsRepository.Delete(id);
+                _unitOfWork.Save();
+
+                return NoContent();
             }
-
-            _unitOfWork.ShippingMethodsRepository.Delete(id);
-            _unitOfWork.Save();
-
-            return NoContent();
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
         }
 
         private bool ShippingMethodExists(int id)
@@ -121,11 +162,20 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<Employee>>> PostBulkShippingMethods(IEnumerable<ShippingMethod> smethods)
         {
             _logger.LogInformation("Shipping method bulk add was called");
-            if (smethods.Count() == 0)
+            try
             {
-                return BadRequest();
+                if (smethods.Count() == 0)
+                {
+                    return BadRequest();
+                }
+                return Ok(shippingMethodService.shippingMethodBulkAdd(smethods));
             }
-            return Ok(shippingMethodService.shippingMethodBulkAdd(smethods));
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+            
         }
     }
 }

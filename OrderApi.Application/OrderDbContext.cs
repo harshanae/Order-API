@@ -30,6 +30,9 @@ namespace OrderApi.Application
             modelBuilder.Entity<CustomerTotal>().HasNoKey();
             modelBuilder.Entity<EmployeeTotal>().HasNoKey();
             modelBuilder.Entity<ProductOrderSummary>().HasNoKey();
+            modelBuilder.Ignore<CustomerTotal>();
+            modelBuilder.Ignore<EmployeeTotal>();
+            modelBuilder.Ignore<ProductOrderSummary>();
         }
     }
 }

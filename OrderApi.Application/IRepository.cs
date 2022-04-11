@@ -14,5 +14,6 @@ namespace OrderApi.Application
         void Insert(T entity);
         void Delete(int id);
         void Update(T entity);
+
     }
 }

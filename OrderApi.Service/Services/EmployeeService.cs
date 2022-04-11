@@ -1,4 +1,5 @@
 ﻿using OrderApi.Application;
+using OrderApi.Application.Repositories;
 using OrderApi.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -12,10 +13,12 @@ namespace OrderApi.Service.Services
     {
         private OrderDbContext _context;
         private UnitOfWork _unitOfWork;
+        private readonly EmployeeRepository empRepo;
         public EmployeeService(OrderDbContext context)
         {
             this._context = context;
             this._unitOfWork = new UnitOfWork(context);
+            empRepo = new EmployeeRepository(context);
         }
 
         public IEnumerable<Employee> employeeBulkAdd(IEnumerable<Employee> employees)
@@ -32,6 +35,11 @@ namespace OrderApi.Service.Services
             }
 
             return insertedEmployees;
+        }
+
+        public IEnumerable<Employee> GetEmployeeByFirstNameStoreProcedure(string fname)
+        {
+            return empRepo.SPGetEmployeeByFirstName(fname);
         }
     }
 }

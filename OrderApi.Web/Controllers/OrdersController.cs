@@ -207,16 +207,16 @@ namespace OrderApi.Web.Controllers
         public async Task<ActionResult<IEnumerable<CustomerTotal>>> GetSalesByCustomerGroupBy()
         {
             _logger.LogInformation("Get order by customer group by was called");
-            try
-            {
+            //try
+            //{
                 //return Ok(orderService.GetTotalSalesByCustomersGroupBy());
                 return Ok(orderService.GetCustomerSalesTotalGroupByRaw());
-            }
-            catch(Exception e)
-            {
-                _logger.LogError(e, "Something went wrong");
-                return StatusCode(500);
-            }
+            //}
+            //catch(Exception e)
+            //{
+            //    _logger.LogError(e, "Something went wrong");
+            //    return StatusCode(500);
+            //}
             
         }
 
@@ -242,6 +242,21 @@ namespace OrderApi.Web.Controllers
             try
             {
                 return Ok(orderService.GetProductOrderSummary());
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet("GetSalesByEmployeesSP")]
+        public async Task<ActionResult<IEnumerable<ProductOrderSummary>>> GetSalesByEmployeeSP()
+        {
+            _logger.LogInformation("Get Sales by Employees Stored procedure was called");
+            try
+            {
+                return Ok(orderService.GetSalesByEmployeeSP());
             }
             catch (Exception e)
             {

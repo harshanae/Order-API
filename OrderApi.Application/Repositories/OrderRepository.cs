@@ -33,5 +33,11 @@ namespace OrderApi.Application.Repositories
             var result = context.ProductOrderSummaries.FromSqlRaw("SELECT po.ProductId, p.ProductName, o.Total, p.Price, po.OrderId, po.Quantity FROM dbo.OrderDetails po INNER JOIN dbo.Orders o ON o.Id = po.OrderId INNER JOIN dbo.Products p ON p.Id=po.ProductId ").ToList();
             return result;
         }
+
+        public IEnumerable<EmployeeTotal> GetTotalSalesByEmployeeSP()
+        {
+            var results = context.EmployeeTotal.FromSqlRaw("EXECUTE GetSalesByEmployeesSP");
+            return results;
+        }
     }
 }

@@ -121,6 +121,11 @@ namespace OrderApi.Service.Services
             return _orderRepo.GetProductOrderSummaries();
         }
 
+        public IEnumerable<EmployeeTotal> GetSalesByEmployeeSP()
+        {
+            return _orderRepo.GetTotalSalesByEmployeeSP();
+        }
+
         
     }
 }

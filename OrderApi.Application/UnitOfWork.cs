@@ -1,4 +1,5 @@
-﻿using OrderApi.Domain.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using OrderApi.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -99,6 +100,11 @@ namespace OrderApi.Application
         public void Save()
         {
             _context.SaveChanges();
+        }
+
+        public void CleanTestData()
+        {
+            _context.Database.ExecuteSqlRaw("dbo.CleanTestingDataFromDB");
         }
 
         protected virtual void Dispose(bool disposing)

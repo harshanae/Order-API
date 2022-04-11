@@ -208,5 +208,21 @@ namespace OrderApi.Web.Controllers
                 return StatusCode(500);
             }
         }
+
+        [HttpGet("GetEmployeesByFristName")]
+        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployeesByFirstNameSP()
+        {
+            try
+            {
+                var firstName = HttpContext.Request.Query["employeeFirstName"].ToString();
+                _logger.LogWarning(firstName);
+                return Ok(employeeService.GetEmployeeByFirstNameStoreProcedure(firstName));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Something went wrong");
+                return StatusCode(500);
+            }
+        }
     }
 }
